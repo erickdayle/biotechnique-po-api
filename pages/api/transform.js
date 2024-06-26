@@ -49,19 +49,18 @@ export default async function handler(req, res) {
 
       if (cf_po_type === "External") {
         total = (
-          (
-            parseFloat(totalSum) +
-            parseFloat(cf_shipping_n_handling_c ?? 0) +
-            parseFloat(cf_tax_c ?? 0) +
-            parseFloat(cf_others_c ?? 0)
-          ).toFixed(2) * 1.15
+          (parseFloat(totalSum) +
+            parseFloat(cf_shipping_n_handling_c || 0) +
+            parseFloat(cf_tax_c || 0) +
+            parseFloat(cf_others_c || 0)) *
+          1.15
         ).toFixed(2);
       } else {
         total = (
           parseFloat(totalSum) +
-          parseFloat(cf_shipping_n_handling_c ?? 0) +
-          parseFloat(cf_tax_c ?? 0) +
-          parseFloat(cf_others_c ?? 0)
+          parseFloat(cf_shipping_n_handling_c || 0) +
+          parseFloat(cf_tax_c || 0) +
+          parseFloat(cf_others_c || 0)
         ).toFixed(2);
       }
 
@@ -93,11 +92,7 @@ export default async function handler(req, res) {
         requestOptions
       );
 
-      if (response.ok) {
-        // Request was successful (status code in the range 200-299)
-        const result = await response.text();
-      } else {
-        // Request failed, handle the error
+      if (!response.ok) {
         throw new Error(`Request failed with status: ${response.status}`);
       }
 
@@ -116,7 +111,6 @@ export default async function handler(req, res) {
       }
 
       res.status(500);
-      responseBody = { error: "Internal Server Error" };
     }
   } else if (req.method === "GET") {
     const data = { message: "Hello, World!" };
