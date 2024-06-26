@@ -33,10 +33,37 @@ function calculateProductQuantity(data) {
 export default async function handler(req, res) {
   if (req.method === "POST") {
     try {
-      const { id, cf_po_item_list_multiple } = JSON.parse(req.body);
+      const {
+        id,
+        cf_po_item_list_multiple,
+        cf_shipping_n_handling_c,
+        cf_tax_c,
+        cf_others_c,
+        cf_po_type,
+      } = JSON.parse(req.body);
       const { transformedData, totalSum } = calculateProductQuantity(
         JSON.parse(cf_po_item_list_multiple)
       );
+
+      let total = 0;
+
+      if (cf_po_type === "External") {
+        total = (
+          (
+            parseFloat(totalSum) +
+            parseFloat(cf_shipping_n_handling_c ?? 0) +
+            parseFloat(cf_tax_c ?? 0) +
+            parseFloat(cf_others_c ?? 0)
+          ).toFixed(2) * 1.15
+        ).toFixed(2);
+      } else {
+        total = (
+          parseFloat(totalSum) +
+          parseFloat(cf_shipping_n_handling_c ?? 0) +
+          parseFloat(cf_tax_c ?? 0) +
+          parseFloat(cf_others_c ?? 0)
+        ).toFixed(2);
+      }
 
       const body = {
         data: {
@@ -45,6 +72,7 @@ export default async function handler(req, res) {
           attributes: {
             cf_po_item_list_multiple: transformedData,
             cf_subtotal_n: totalSum,
+            cf_total_ca: total,
           },
         },
       };
