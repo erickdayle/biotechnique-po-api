@@ -5,13 +5,13 @@ function calculateProductQuantity(data) {
   let totalSum = 0;
   const transformedData = data.map((itemList) => {
     const quantityIndex = itemList.findIndex(
-      (item) => item.key === "663b950f50384"
+      (item) => item.key === "667c2b211d399"
     );
     const priceIndex = itemList.findIndex(
-      (item) => item.key === "663b950f50385"
+      (item) => item.key === "667c2b211d39a"
     );
     const productIndex = itemList.findIndex(
-      (item) => item.key === "663b950f50386"
+      (item) => item.key === "667c2b211d39b"
     );
 
     if (quantityIndex !== -1 && priceIndex !== -1 && productIndex !== -1) {
@@ -35,46 +35,42 @@ export default async function handler(req, res) {
     try {
       const {
         id,
-        cf_po_item_list_multiple,
+        cf_item_list_poreq,
         cf_shipping_n_handling_c,
         cf_tax_c,
         cf_others_c,
         cf_po_type,
       } = JSON.parse(req.body);
+
       const { transformedData, totalSum } = calculateProductQuantity(
-        JSON.parse(cf_po_item_list_multiple)
+        JSON.parse(cf_item_list_poreq)
       );
 
-      let total = 0;
+      const subtotal = parseFloat(totalSum);
+      const shipping = parseFloat(cf_shipping_n_handling_c || 0);
+      const tax = parseFloat(cf_tax_c || 0);
+      const others = parseFloat(cf_others_c || 0);
 
+      let total = subtotal + shipping + tax + others;
       if (cf_po_type === "External") {
-        total = (
-          (parseFloat(totalSum) +
-            parseFloat(cf_shipping_n_handling_c || 0) +
-            parseFloat(cf_tax_c || 0) +
-            parseFloat(cf_others_c || 0)) *
-          1.15
-        ).toFixed(2);
-      } else {
-        total = (
-          parseFloat(totalSum) +
-          parseFloat(cf_shipping_n_handling_c || 0) +
-          parseFloat(cf_tax_c || 0) +
-          parseFloat(cf_others_c || 0)
-        ).toFixed(2);
+        total *= 1.15;
       }
+
+      console.log(total);
 
       const body = {
         data: {
           type: "records",
           id: id,
           attributes: {
-            cf_po_item_list_multiple: transformedData,
-            cf_subtotal_n: totalSum,
-            cf_total_ca: total,
+            cf_item_list_poreq: transformedData,
+            cf_subtotal_n: subtotal.toFixed(2),
+            cf_total: total.toFixed(2),
           },
         },
       };
+
+      // console.log(JSON.stringify(body, null, 2)); // Pretty print the entire body
 
       var myHeaders = new Headers();
       myHeaders.append("Authorization", `Bearer ${process.env.ACCESS_TOKEN}`);
@@ -93,7 +89,13 @@ export default async function handler(req, res) {
       );
 
       if (!response.ok) {
-        throw new Error(`Request failed with status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Request failed with status: ${response.status}`);
+        console.error(`Response body:`, errorText);
+        return res.status(response.status).json({
+          error: `Request failed with status: ${response.status}`,
+          details: errorText,
+        });
       }
 
       const responseBody = {
